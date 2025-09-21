@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { api } from '@/utils/api';
 import { Issue } from '@/types';
 import { ISSUE_CATEGORIES, STATUS_COLORS } from '@/utils/constants';
+import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, MapPin, Navigation, Filter } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -21,10 +22,12 @@ L.Icon.Default.mergeOptions({
 
 const InteractiveMap: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isGuest } = useAuth();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [center, setCenter] = useState<[number, number]>([28.6139, 77.2090]); // Default to Delhi
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -36,9 +39,13 @@ const InteractiveMap: React.FC = () => {
       const location = await api.getCurrentLocation();
       setCenter([location.lat, location.lng]);
       
-      // Load all issues
-      const allIssues = await api.getIssues();
-      setIssues(allIssues);
+      // Load issues only for authenticated users
+      if (!isGuest) {
+        const allIssues = await api.getIssues();
+        setIssues(allIssues);
+      } else {
+        setIssues([]); // No issues for guest users
+      }
     } catch (error) {
       console.error('Failed to load map data:', error);
     } finally {
@@ -107,8 +114,8 @@ const InteractiveMap: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 pb-20">
-        <div className="flex items-center space-x-3">
+      <div className="space-y-3 pb-20 -mt-6">
+        <div className="flex items-center space-x-3 mb-3">
           <Button
             variant="ghost"
             size="icon"
@@ -134,9 +141,9 @@ const InteractiveMap: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-3 pb-20 -mt-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           <Button
             variant="ghost"
@@ -195,11 +202,34 @@ const InteractiveMap: React.FC = () => {
 
       {/* Map */}
       <Card className="shadow-card overflow-hidden">
-        <div style={{ height: '500px', width: '100%' }}>
+        <div 
+          style={{ 
+            height: isExpanded ? '450px' : '200px', 
+            width: '100%', 
+            position: 'relative', 
+            zIndex: 1,
+            transition: 'height 0.3s ease-in-out'
+          }}
+        >
+          {/* Expand/Collapse Controls */}
+          <div className="absolute top-2 right-2 z-10 flex space-x-2">
+            {isExpanded && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsExpanded(false)}
+                className="bg-white/90 hover:bg-white text-gray-700"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+            )}
+          </div>
+          
           <MapContainer
             center={center}
-            zoom={13}
-            style={{ height: '100%', width: '100%' }}
+            zoom={isExpanded ? 13 : 12}
+            style={{ height: '100%', width: '100%', zIndex: 1 }}
             whenReady={() => {
               // Map is ready
             }}
@@ -209,7 +239,7 @@ const InteractiveMap: React.FC = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             
-            {issues.map((issue) => (
+            {!isGuest && issues.map((issue) => (
               <Marker
                 key={issue.id}
                 position={[issue.location.lat, issue.location.lng]}
@@ -239,6 +269,18 @@ const InteractiveMap: React.FC = () => {
               </Marker>
             ))}
           </MapContainer>
+          
+          {/* Click to Expand Overlay (only when not expanded) */}
+          {!isExpanded && (
+            <div 
+              className="absolute inset-0 bg-black/20 flex items-center justify-center cursor-pointer z-10"
+              onClick={() => setIsExpanded(true)}
+            >
+              <div className="bg-white/90 px-4 py-2 rounded-lg shadow-lg">
+                <span className="text-sm font-medium text-gray-700">Click to Expand Map</span>
+              </div>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -289,7 +331,7 @@ const InteractiveMap: React.FC = () => {
       )}
 
       {/* Quick Actions */}
-      <div className="fixed bottom-20 right-4 space-y-2">
+      <div className="fixed bottom-24 right-4 space-y-2" style={{ zIndex: 100 }}>
         <Button
           onClick={() => navigate('/upload')}
           className="h-12 w-12 rounded-full shadow-button"

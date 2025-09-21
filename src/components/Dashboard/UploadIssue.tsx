@@ -17,7 +17,11 @@ import {
   Upload, 
   X, 
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Mic,
+  Square,
+  Play,
+  Pause
 } from 'lucide-react';
 
 const UploadIssue: React.FC = () => {
@@ -36,6 +40,14 @@ const UploadIssue: React.FC = () => {
   const [location, setLocation] = useState<{lat: number; lng: number; address: string} | null>(null);
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  
+  // Voice recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -79,6 +91,77 @@ const UploadIssue: React.FC = () => {
       });
     } finally {
       setGettingLocation(false);
+    }
+  };
+
+  // Voice recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      setMediaRecorder(recorder);
+      recorder.start();
+      setIsRecording(true);
+      
+      toast({
+        title: "Recording started",
+        description: "Speak clearly to describe your issue."
+      });
+    } catch (error) {
+      toast({
+        title: "Recording failed",
+        description: "Could not access microphone. Please check permissions.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setMediaRecorder(null);
+      
+      toast({
+        title: "Recording completed",
+        description: "Your voice note has been saved."
+      });
+    }
+  };
+
+  const playAudio = () => {
+    if (audioRef.current && audioUrl) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    }
+  };
+
+  const deleteRecording = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setIsPlaying(false);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
     }
   };
 
@@ -148,9 +231,9 @@ const UploadIssue: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-3 pb-20 -mt-6">
       {/* Header */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 mb-3">
         <Button
           variant="ghost"
           size="icon"
@@ -324,6 +407,90 @@ const UploadIssue: React.FC = () => {
                     </Button>
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Voice Recording */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>Voice Note</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Record a voice description of the issue (optional)
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!audioBlob ? (
+              <div className="flex flex-col items-center space-y-4">
+                <Button
+                  type="button"
+                  variant={isRecording ? "destructive" : "outline"}
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={isGuest}
+                  className="w-full h-20 border-dashed"
+                >
+                  <div className="flex flex-col items-center space-y-2">
+                    {isRecording ? (
+                      <>
+                        <Square className="h-6 w-6" />
+                        <span>Stop Recording</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="h-6 w-6" />
+                        <span>Start Voice Recording</span>
+                      </>
+                    )}
+                  </div>
+                </Button>
+                {isRecording && (
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span>Recording in progress...</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                      <Mic className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Voice Recording</p>
+                      <p className="text-xs text-muted-foreground">Tap to play/pause</p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={playAudio}
+                    >
+                      {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={deleteRecording}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                
+                {audioUrl && (
+                  <audio
+                    ref={audioRef}
+                    src={audioUrl}
+                    onEnded={() => setIsPlaying(false)}
+                    className="hidden"
+                  />
+                )}
               </div>
             )}
           </CardContent>

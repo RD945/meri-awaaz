@@ -73,48 +73,52 @@ const AppRoutes: React.FC = () => {
 
   // Authenticated routes
   return (
-    <AppLayout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/upload" element={
-          <ProtectedRoute>
-            <UploadIssue />
-          </ProtectedRoute>
-        } />
-        <Route path="/my-issues" element={
-          <ProtectedRoute>
-            <MyIssues />
-          </ProtectedRoute>
-        } />
-        <Route path="/map" element={
-          <ProtectedRoute>
-            <InteractiveMap />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } />
-        <Route path="/awards" element={
-          <ProtectedRoute>
-            <Awards />
-          </ProtectedRoute>
-        } />
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AppLayout>
+    <Routes>
+      <Route path="/signin" element={<SignIn />} />
+      <Route path="*" element={
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/upload" element={
+              <ProtectedRoute>
+                <UploadIssue />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-issues" element={
+              <ProtectedRoute>
+                <MyIssues />
+              </ProtectedRoute>
+            } />
+            <Route path="/map" element={
+              <ProtectedRoute>
+                <InteractiveMap />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/awards" element={
+              <ProtectedRoute>
+                <Awards />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppLayout>
+      } />
+    </Routes>
   );
 };
 

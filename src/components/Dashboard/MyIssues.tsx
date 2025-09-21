@@ -106,8 +106,8 @@ const MyIssues: React.FC = () => {
 
   if (isGuest) {
     return (
-      <div className="space-y-6 pb-20">
-        <div className="flex items-center space-x-3">
+      <div className="space-y-3 pb-20 -mt-6">
+        <div className="flex items-center space-x-3 mb-3">
           <Button
             variant="ghost"
             size="icon"
@@ -140,9 +140,9 @@ const MyIssues: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-3 pb-20 -mt-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           <Button
             variant="ghost"

@@ -4,27 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Upload, 
-  FileText, 
-  Map, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle,
-  AlertTriangle,
+import {
+  Upload,
+  FileText,
+  Map,
+  TrendingUp,
   Users
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isGuest } = useAuth();
-
-  const stats = [
-    { label: 'Total Issues', value: '567', icon: FileText, color: 'bg-blue-500' },
-    { label: 'Resolved', value: '423', icon: CheckCircle, color: 'bg-green-500' },
-    { label: 'In Progress', value: '109', icon: Clock, color: 'bg-yellow-500' },
-    { label: 'Urgent', value: '35', icon: AlertTriangle, color: 'bg-red-500' }
-  ];
 
   const quickActions = [
     {
@@ -58,16 +48,16 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-20 -mt-9">
       {/* Welcome Section */}
       <div className="gradient-hero rounded-lg p-4 text-white">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold mb-2">
-              Welcome, {user ? user.name : 'Guest'}!
+              Welcome, {user ? user.name : 'Citizen'}!
             </h2>
             <p className="text-white/90 text-sm">
-              {isGuest 
+              {isGuest
                 ? 'Limited access. Sign in for full features.'
                 : 'Ready to make your community better?'
               }
@@ -87,28 +77,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index} className="shadow-card">
-              <CardContent className="p-3">
-                <div className="flex items-center space-x-2">
-                  <div className={`h-8 w-8 rounded-full ${stat.color} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
       {/* Quick Actions */}
       <Card className="shadow-card">
         <CardHeader className="pb-3">
@@ -123,14 +91,16 @@ const Dashboard: React.FC = () => {
                   key={index}
                   variant="outline"
                   onClick={() => navigate(action.path)}
-                  className="h-auto p-3 flex items-start space-x-3 text-left hover:shadow-card transition-smooth"
+                  className="h-auto p-3 justify-start text-left hover:shadow-card transition-smooth w-full"
                 >
-                  <div className={`h-8 w-8 rounded-full ${action.color} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm mb-1">{action.title}</h3>
-                    <p className="text-xs text-muted-foreground">{action.description}</p>
+                  <div className="flex items-center space-x-3 w-full">
+                    <div className={`h-8 w-8 rounded-full ${action.color} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm mb-1 text-left">{action.title}</h3>
+                      <p className="text-xs text-muted-foreground text-left">{action.description}</p>
+                    </div>
                   </div>
                 </Button>
               );
@@ -145,40 +115,58 @@ const Dashboard: React.FC = () => {
           <CardTitle className="text-lg">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[
-              { 
-                title: 'Pothole issue resolved',
-                description: 'Main Street issue has been fixed',
-                time: '2 hours ago',
-                status: 'resolved'
-              },
-              {
-                title: 'New water supply issue reported',
-                description: 'Rajouri Garden area needs attention',
-                time: '5 hours ago',
-                status: 'pending'
-              },
-              {
-                title: 'Streetlight repair in progress',
-                description: 'Sector 18 lighting issue being addressed',
-                time: '1 day ago',
-                status: 'progress'
-              }
-            ].map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/50">
-                <div className={`h-2 w-2 rounded-full mt-2 ${
-                  activity.status === 'resolved' ? 'bg-green-500' :
-                  activity.status === 'progress' ? 'bg-blue-500' : 'bg-yellow-500'
-                }`} />
-                <div>
-                  <h4 className="font-medium text-sm">{activity.title}</h4>
-                  <p className="text-xs text-muted-foreground">{activity.description}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-                </div>
+          {isGuest ? (
+            <div className="text-center py-8">
+              <div className="mb-4">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
               </div>
-            ))}
-          </div>
+              <h3 className="font-semibold text-lg mb-2">Track Your Impact</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Sign in to see your reported issues and their status updates
+              </p>
+              <Button 
+                onClick={() => navigate('/signin')}
+                className="shadow-button transition-bounce"
+              >
+                Sign In to View Activity
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {[
+                {
+                  title: 'Pothole issue resolved',
+                  description: 'Main Street issue has been fixed',
+                  time: '2 hours ago',
+                  status: 'resolved'
+                },
+                {
+                  title: 'New water supply issue reported',
+                  description: 'Rajouri Garden area needs attention',
+                  time: '5 hours ago',
+                  status: 'pending'
+                },
+                {
+                  title: 'Streetlight repair in progress',
+                  description: 'Sector 18 lighting issue being addressed',
+                  time: '1 day ago',
+                  status: 'progress'
+                }
+              ].map((activity, index) => (
+                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`h-2 w-2 rounded-full mt-2 ${
+                    activity.status === 'resolved' ? 'bg-green-500' :
+                    activity.status === 'progress' ? 'bg-blue-500' : 'bg-yellow-500'
+                  }`} />
+                  <div>
+                    <h4 className="font-medium text-sm">{activity.title}</h4>
+                    <p className="text-xs text-muted-foreground">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

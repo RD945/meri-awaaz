@@ -24,7 +24,7 @@ const Navigation: React.FC = () => {
 
   return (
     <nav
-      className="fixed inset-x-0 z-50 flex justify-center pointer-events-auto"
+      className="fixed inset-x-0 z-[100] flex justify-center pointer-events-auto"
       style={{
         bottom: `${bottomOffset}px`,
         WebkitTapHighlightColor: 'transparent',
