@@ -32,8 +32,10 @@ const Navigation: React.FC = () => {
     >
       <div className="container mx-auto px-4">
         <div
-          className="bg-card border shadow-card rounded-2xl inline-flex items-center relative overflow-hidden"
+          className="bg-white/40 backdrop-blur-2xl border border-white/50 shadow-2xl rounded-2xl inline-flex items-center relative overflow-hidden"
           style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             width: `calc(100% - ${leftInset + rightInset}px)`,
             marginLeft: `${leftInset}px`,
             marginRight: `${rightInset}px`,
