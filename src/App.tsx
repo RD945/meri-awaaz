@@ -13,6 +13,7 @@ import Navigation from "./components/Layout/Navigation";
 // Auth Components
 import GetStarted from "./components/Auth/GetStarted";
 import SignIn from "./components/Auth/SignIn";
+import SignUpFlow from "./components/Auth/SignUpFlow";
 
 // Dashboard Components
 import Dashboard from "./components/Dashboard/Dashboard";
@@ -48,8 +49,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="min-h-screen bg-background">
       {showNavigation && <Header />}
-      <main className={`${showNavigation ? 'pt-16' : ''} container mx-auto px-4 py-6`}>
-        {children}
+      <main className={`${showNavigation ? 'pt-16' : ''} px-3 sm:px-6 py-6 main-content`}>
+        <div className="max-w-sm sm:max-w-lg lg:max-w-4xl mx-auto w-full" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+          {children}
+        </div>
       </main>
       {showNavigation && <Navigation />}
     </div>
@@ -58,7 +61,19 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Main App Routes
 const AppRoutes: React.FC = () => {
-  const { user, isGuest } = useAuth();
+  const { user, isGuest, loading } = useAuth();
+
+  // Show loading spinner while checking authentication state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   // If user is not authenticated and not a guest, show onboarding
   if (!user && !isGuest) {
@@ -66,6 +81,15 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<GetStarted />} />
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/verify-phone" element={
+          <SignUpFlow 
+            userEmail={new URLSearchParams(window.location.search).get('email') || ''} 
+            onComplete={() => {
+              // Force navigation after completion
+              window.location.href = '/dashboard';
+            }} 
+          />
+        } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -74,7 +98,8 @@ const AppRoutes: React.FC = () => {
   // Authenticated routes
   return (
     <Routes>
-      <Route path="/signin" element={<SignIn />} />
+      <Route path="/signin" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/verify-phone" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={
         <AppLayout>
           <Routes>

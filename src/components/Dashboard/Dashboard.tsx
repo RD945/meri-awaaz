@@ -1,20 +1,71 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { issueService, handleApiError } from '@/lib/apiService';
+import { Issue } from '@/types';
 import {
   Upload,
   FileText,
   Map,
   TrendingUp,
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, isGuest } = useAuth();
+  const [recentIssues, setRecentIssues] = useState<Issue[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch recent community issues on component mount
+  useEffect(() => {
+    if (!isGuest) {
+      fetchRecentIssues();
+    }
+  }, [isGuest]);
+
+  const fetchRecentIssues = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Fetch user's recent issues with limit
+      const response = await issueService.getUserIssues({ 
+        page: 1, 
+        limit: 3 // Only get the 3 most recent user issues for dashboard 
+      });
+      setRecentIssues(response.data);
+    } catch (err) {
+      setError(handleApiError(err));
+      console.error('Failed to fetch user issues:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'resolved': return 'bg-green-500';
+      case 'in progress': return 'bg-blue-500';
+      case 'submitted': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  };
 
   const quickActions = [
     {
@@ -48,37 +99,43 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4 pb-20 -mt-9">
+    <div className="space-y-4 pb-20 -mt-9 container-safe">
       {/* Welcome Section */}
       <div className="gradient-hero rounded-lg p-4 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold mb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold mb-2 truncate">
               Welcome, {user ? user.name : 'Citizen'}!
             </h2>
-            <p className="text-white/90 text-sm">
+            <p className="text-white/90 text-sm mb-3">
               {isGuest
                 ? 'Limited access. Sign in for full features.'
                 : 'Ready to make your community better?'
               }
             </p>
             {user && (
-              <div className="flex items-center space-x-2 mt-2">
-                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs whitespace-nowrap">
                   {user.points} Points
                 </Badge>
-                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs">
-                  {user.badges.length} Badges
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30 text-xs whitespace-nowrap">
+                  {user.badges?.length || 0} Badges
                 </Badge>
               </div>
             )}
           </div>
-          <TrendingUp className="h-8 w-8 text-white/70 flex-shrink-0" />
+          <TrendingUp className="h-8 w-8 text-white/70 flex-shrink-0 mt-1" />
         </div>
       </div>
 
       {/* Quick Actions */}
-      <Card className="shadow-card">
+      <Card 
+        className="shadow-card bg-white/80 border border-white/30 backdrop-blur-lg"
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        }}
+      >
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Quick Actions</CardTitle>
         </CardHeader>
@@ -110,9 +167,15 @@ const Dashboard: React.FC = () => {
       </Card>
 
       {/* Recent Activity */}
-      <Card className="shadow-card">
+      <Card 
+        className="shadow-card bg-white/80 border border-white/30 backdrop-blur-lg"
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        }}
+      >
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <CardTitle className="text-lg">My Recent Issues</CardTitle>
         </CardHeader>
         <CardContent>
           {isGuest ? (
@@ -131,40 +194,69 @@ const Dashboard: React.FC = () => {
                 Sign In to View Activity
               </Button>
             </div>
+          ) : loading ? (
+            <div className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Loading recent activity...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <div className="mb-4">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2">Unable to load activity</h3>
+              <p className="text-muted-foreground text-sm mb-4">{error}</p>
+              <Button 
+                onClick={fetchRecentIssues}
+                variant="outline"
+                size="sm"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : recentIssues.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="mb-4">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
+              </div>
+              <h3 className="font-semibold text-lg mb-2">No recent activity</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Be the first to report an issue in your community
+              </p>
+              <Button 
+                onClick={() => navigate('/upload')}
+                className="shadow-button transition-bounce"
+              >
+                Report an Issue
+              </Button>
+            </div>
           ) : (
             <div className="space-y-3">
-              {[
-                {
-                  title: 'Pothole issue resolved',
-                  description: 'Main Street issue has been fixed',
-                  time: '2 hours ago',
-                  status: 'resolved'
-                },
-                {
-                  title: 'New water supply issue reported',
-                  description: 'Rajouri Garden area needs attention',
-                  time: '5 hours ago',
-                  status: 'pending'
-                },
-                {
-                  title: 'Streetlight repair in progress',
-                  description: 'Sector 18 lighting issue being addressed',
-                  time: '1 day ago',
-                  status: 'progress'
-                }
-              ].map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/50">
-                  <div className={`h-2 w-2 rounded-full mt-2 ${
-                    activity.status === 'resolved' ? 'bg-green-500' :
-                    activity.status === 'progress' ? 'bg-blue-500' : 'bg-yellow-500'
-                  }`} />
-                  <div>
-                    <h4 className="font-medium text-sm">{activity.title}</h4>
-                    <p className="text-xs text-muted-foreground">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+              {recentIssues.map((issue) => (
+                <div key={issue.issueId} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/50">
+                  <div className={`h-2 w-2 rounded-full mt-2 ${getStatusColor(issue.status)}`} />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm truncate">{issue.title}</h4>
+                    <p className="text-xs text-muted-foreground truncate">{issue.description}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-muted-foreground">{formatTimeAgo(issue.createdAt)}</p>
+                      <Badge variant="secondary" className="text-xs">
+                        {issue.status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               ))}
+              <div className="text-center pt-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => navigate('/my-issues')}
+                  className="text-xs"
+                >
+                  View All Issues →
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

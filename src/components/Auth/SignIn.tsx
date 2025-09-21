@@ -11,28 +11,67 @@ import { useToast } from '@/hooks/use-toast';
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn, continueAsGuest, user, isGuest } = useAuth();
+  const { signIn, signUp, continueAsGuest, user, isGuest } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      await signIn(email, password);
+      if (isSignUp) {
+        if (!name.trim()) {
+          throw new Error('Name is required');
+        }
+        await signUp(email, password, name);
+        toast({
+          title: "Account created!",
+          description: "Welcome to Meri Awaaz! Please verify your phone number to continue.",
+        });
+        // Navigate to phone verification for new users
+        navigate(`/verify-phone?email=${encodeURIComponent(email)}`);
+      } else {
+        await signIn(email, password);
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
+        });
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
+      let errorMessage = "Please try again.";
+      
+      // Handle Firebase authentication errors
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            errorMessage = "Invalid email or password.";
+            break;
+          case 'auth/email-already-in-use':
+            errorMessage = "An account with this email already exists.";
+            break;
+          case 'auth/weak-password':
+            errorMessage = "Password should be at least 6 characters.";
+            break;
+          case 'auth/invalid-email':
+            errorMessage = "Please enter a valid email address.";
+            break;
+          default:
+            errorMessage = error.message || "Please try again.";
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
-      navigate('/dashboard');
-    } catch (error) {
-      toast({
-        title: "Sign in failed",
-        description: "Please check your credentials and try again.",
+        title: isSignUp ? "Sign up failed" : "Sign in failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -97,7 +136,7 @@ const SignIn: React.FC = () => {
           </CardHeader>
           
           <CardContent className="space-y-3 px-4 pb-6">
-            <form onSubmit={handleSignIn} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {isSignUp && (
                 <div className="space-y-2">
                   <Label htmlFor="name" className={`text-xs ${isSignUp ? 'text-white' : ''}`}>Full Name</Label>
@@ -107,6 +146,8 @@ const SignIn: React.FC = () => {
                       id="name"
                       type="text"
                       placeholder="Enter your full name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       className={`pl-10 text-xs h-12 ${isSignUp ? 'bg-green-500 border-green-400 text-white placeholder:text-green-200' : ''}`}
                       required
                     />

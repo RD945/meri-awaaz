@@ -30,7 +30,7 @@ const Navigation: React.FC = () => {
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <div className="container mx-auto px-4">
+      <div className="px-3 sm:px-4 max-w-sm sm:max-w-lg lg:max-w-4xl mx-auto w-full">
         <div
           className="bg-white/40 backdrop-blur-2xl border border-white/50 shadow-2xl rounded-2xl inline-flex items-center relative overflow-hidden"
           style={{

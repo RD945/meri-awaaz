@@ -132,12 +132,28 @@ All colors MUST be HSL.
     @apply bg-background text-foreground font-sans antialiased;
     overflow-x: hidden;
     min-width: 320px;
-    max-width: 400px;
-    margin: 0 auto;
+    margin: 0;
+    padding: 0;
+    /* Prevent edge gesture activation */
+    overscroll-behavior-x: none;
   }
 
   html {
     scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+    /* Prevent edge swipe gestures */
+    overscroll-behavior-x: none;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Prevent touch gestures near edges */
+  .main-content {
+    touch-action: pan-y;
+    overflow-x: hidden;
   }
 }
 
@@ -180,5 +196,11 @@ All colors MUST be HSL.
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  /* Prevent content overflow */
+  .container-safe {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }

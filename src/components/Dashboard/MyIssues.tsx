@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-import { api } from '@/utils/api';
-import { Issue } from '@/types';
+import { issueService, handleApiError } from '@/lib/apiService';
+import { Issue, LegacyIssue } from '@/types';
 import { ISSUE_CATEGORIES, STATUS_COLORS, PRIORITY_COLORS } from '@/utils/constants';
 import { 
   ArrowLeft, 
@@ -17,8 +17,48 @@ import {
   MapPin,
   Eye,
   MessageSquare,
-  ThumbsUp
+  ThumbsUp,
+  Loader2,
+  RefreshCw,
+  Zap, 
+  Droplets, 
+  Car, 
+  Trash2, 
+  Trees, 
+  Hospital, 
+  GraduationCap, 
+  Shield, 
+  Globe, 
+  FileText, 
+  Users, 
+  Crown, 
+  CheckCircle, 
+  Trophy
 } from 'lucide-react';
+
+// Map icon names to Lucide components
+const iconMap: { [key: string]: React.ComponentType<any> } = {
+  Car,
+  Droplets,
+  Zap,
+  Trash2,
+  Trees,
+  Hospital,
+  GraduationCap,
+  Shield,
+  Globe,
+  FileText,
+  Users,
+  Crown,
+  CheckCircle,
+  Trophy
+};
+
+// Render icon helper function
+const renderIcon = (iconName: string, className?: string) => {
+  const IconComponent = iconMap[iconName];
+  return IconComponent ? React.createElement(IconComponent, { className }) : React.createElement(FileText, { className });
+};
 
 const MyIssues: React.FC = () => {
   const navigate = useNavigate();
@@ -28,26 +68,39 @@ const MyIssues: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    loadIssues();
-  }, [user]);
+    loadIssues(1);
+  }, [user, statusFilter]);
 
   useEffect(() => {
     filterIssues();
-  }, [issues, searchTerm, statusFilter]);
+  }, [issues, searchTerm]);
 
-  const loadIssues = async () => {
+  const loadIssues = async (page: number = 1) => {
     if (!user) {
       setLoading(false);
       return;
     }
 
     try {
-      const userIssues = await api.getUserIssues(user.id);
-      setIssues(userIssues);
-    } catch (error) {
-      console.error('Failed to load issues:', error);
+      setLoading(true);
+      setError(null);
+      const response = await issueService.getUserIssues({ 
+        page, 
+        limit: 10,
+        status: statusFilter !== 'all' ? statusFilter : undefined
+      });
+      
+      setIssues(response.data);
+      setCurrentPage(page);
+      setTotalPages(Math.ceil(response.pagination.total / response.pagination.limit));
+    } catch (err) {
+      setError(handleApiError(err));
+      console.error('Failed to load user issues:', err);
     } finally {
       setLoading(false);
     }
@@ -56,7 +109,7 @@ const MyIssues: React.FC = () => {
   const filterIssues = () => {
     let filtered = issues;
 
-    // Filter by search term
+    // Filter by search term (title and description)
     if (searchTerm) {
       filtered = filtered.filter(issue =>
         issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,16 +117,12 @@ const MyIssues: React.FC = () => {
       );
     }
 
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(issue => issue.status === statusFilter);
-    }
-
     setFilteredIssues(filtered);
   };
 
-  const getCategoryInfo = (categoryId: string) => {
-    return ISSUE_CATEGORIES.find(cat => cat.id === categoryId) || ISSUE_CATEGORIES[0];
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1); // Reset to first page when filter changes
   };
 
   const formatDate = (dateString: string) => {
@@ -82,6 +131,10 @@ const MyIssues: React.FC = () => {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const getCategoryInfo = (categoryId: string) => {
+    return ISSUE_CATEGORIES.find(cat => cat.id === categoryId) || ISSUE_CATEGORIES[0];
   };
 
   const getStatusColor = (status: string) => {
@@ -116,18 +169,24 @@ const MyIssues: React.FC = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">My Issues</h1>
-            <p className="text-muted-foreground">Track your submitted issues</p>
+            <h1 className="text-xl font-bold">My Issues</h1>
+            <p className="text-sm text-muted-foreground">Track your submitted issues</p>
           </div>
         </div>
 
-        <Card className="shadow-card">
+        <Card 
+          className="shadow-card bg-white/80 border border-white/30 backdrop-blur-lg"
+          style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}
+        >
           <CardContent className="text-center py-12">
             <div className="mb-4">
               <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Sign in to view your issues</h3>
-            <p className="text-muted-foreground mb-4">
+            <h3 className="text-base font-semibold mb-2">Sign in to view your issues</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Create an account to report and track civic issues in your area.
             </p>
             <Button onClick={() => navigate('/signin')}>
@@ -152,19 +211,22 @@ const MyIssues: React.FC = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">My Issues</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl font-bold">My Issues</h1>
+            <p className="text-sm text-muted-foreground">
               {filteredIssues.length} of {issues.length} issues
             </p>
           </div>
         </div>
-        <Button onClick={() => navigate('/upload')} className="shadow-button">
-          Report New Issue
-        </Button>
       </div>
 
       {/* Filters */}
-      <Card className="shadow-card">
+      <Card 
+        className="shadow-card bg-white/80 border border-white/30 backdrop-blur-lg"
+        style={{
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        }}
+      >
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
@@ -197,7 +259,14 @@ const MyIssues: React.FC = () => {
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="shadow-card">
+            <Card 
+              key={i} 
+              className="shadow-card bg-white/80 border border-white/30 backdrop-blur-lg"
+              style={{
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              }}
+            >
               <CardContent className="p-4">
                 <div className="animate-pulse">
                   <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
@@ -208,15 +277,21 @@ const MyIssues: React.FC = () => {
           ))}
         </div>
       ) : filteredIssues.length === 0 ? (
-        <Card className="shadow-card">
+        <Card 
+          className="shadow-card bg-white/80 border border-white/30 backdrop-blur-lg"
+          style={{
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}
+        >
           <CardContent className="text-center py-12">
             <div className="mb-4">
               <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">
+            <h3 className="text-base font-semibold mb-2">
               {issues.length === 0 ? 'No issues reported yet' : 'No issues found'}
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               {issues.length === 0 
                 ? 'Start by reporting your first civic issue to help improve your community.'
                 : 'Try adjusting your search or filter criteria.'
@@ -234,41 +309,65 @@ const MyIssues: React.FC = () => {
           {filteredIssues.map((issue) => {
             const category = getCategoryInfo(issue.category);
             return (
-              <Card key={issue.id} className="shadow-card hover:shadow-primary transition-smooth">
+              <Card 
+                key={issue.issueId} 
+                className="shadow-card hover:shadow-primary transition-smooth bg-white/80 border border-white/30 backdrop-blur-lg"
+                style={{
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                }}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between space-x-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-lg">{category.icon}</span>
+                        <div className="p-1 rounded" style={{ backgroundColor: category.color + '20' }}>
+                          {renderIcon(category.icon, "w-4 h-4")}
+                        </div>
                         <Badge className={getStatusColor(issue.status)}>
-                          {issue.status.replace('-', ' ').toUpperCase()}
+                          {issue.status.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}
                         </Badge>
-                        <Badge className={getPriorityColor(issue.priority)}>
+                        <Badge className={getPriorityColor(issue.priority.toLowerCase())}>
                           {issue.priority.toUpperCase()}
                         </Badge>
                       </div>
                       
-                      <h3 className="font-semibold text-lg mb-1 truncate">
+                      <h3 className="font-semibold text-base mb-1 truncate">
                         {issue.title}
                       </h3>
-                      <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+
+                      {/* Image display */}
+                      {issue.imageUrls && issue.imageUrls.length > 0 && (
+                        <div className="mb-3">
+                          <img 
+                            src={issue.imageUrls[0]} 
+                            alt="Issue" 
+                            className="w-full h-32 object-cover rounded-lg"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <p className="text-muted-foreground text-xs mb-3 line-clamp-2">
                         {issue.description}
                       </p>
                       
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                         <div className="flex items-center space-x-1">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatDate(issue.submittedAt)}</span>
+                          <span>{formatDate(issue.createdAt)}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <MapPin className="h-4 w-4" />
                           <span className="truncate max-w-32">
-                            {issue.location.address}
+                            {issue.location?.address || `${issue.location.latitude.toFixed(4)}, ${issue.location.longitude.toFixed(4)}`}
                           </span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <ThumbsUp className="h-4 w-4" />
-                          <span>{issue.votes}</span>
+                          <span>{issue.upvotes}</span>
                         </div>
                       </div>
                     </div>
@@ -278,22 +377,22 @@ const MyIssues: React.FC = () => {
                       size="icon"
                       onClick={() => {
                         // In a real app, navigate to issue details page
-                        console.log('View issue:', issue.id);
+                        console.log('View issue:', issue.issueId);
                       }}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
 
-                  {issue.resolution && (
+                  {issue.status === 'Resolved' && issue.aiSummary && (
                     <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-start space-x-2">
                         <div className="h-5 w-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                           <span className="text-white text-xs">✓</span>
                         </div>
                         <div>
-                          <h4 className="font-medium text-green-800 mb-1">Resolution</h4>
-                          <p className="text-sm text-green-700">{issue.resolution}</p>
+                          <h4 className="font-medium text-green-800 mb-1">Resolution Summary</h4>
+                          <p className="text-sm text-green-700">{issue.aiSummary}</p>
                         </div>
                       </div>
                     </div>

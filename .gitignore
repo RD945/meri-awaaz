@@ -11,6 +11,29 @@ node_modules
 dist
 dist-ssr
 *.local
+info.txt
+ui.txt
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.example
+.env.complete
+# Configuration doc`xumentation
+FIREBASE_SETUP.md
+TWILIO_SETUP.md
+COMPREHENSIVE_ANALYSIS_REPORT.md
+DATABASE_STORAGE_SETUP.md
+DEVELOPMENT.md
+FIREBASE_QUICK_SETUP.md
+FIREBASE_STORAGE_SETUP.md
+AI_SETUP_GUIDE.md
+CODE_REVIEW_FIXES.md
+FIRESTORE_SECURITY_RULES.md
+FIRESTORE_SETUP.md
+QUICK_SETUP.md
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +45,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+##llava
+llama_server.py
+llava_requirements.txt
+
+test_firebase_storage.py
+test_setup.py
+
+backend/test_server.py
+backend/test_firestore.py
+backend/check_indexes.py
+
+admin
